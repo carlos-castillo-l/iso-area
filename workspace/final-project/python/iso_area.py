@@ -19,7 +19,3 @@ def yaml_generator(filename, num_PEs, buffer_parameters):
 
    with open('new.yaml', 'w', encoding='utf8') as file:
       yaml.dump(data, file, default_flow_style=False, allow_unicode=True)
-
-if __name__ == "__main__":
-  for _ in range(10):
-    print (num_PE_generator(14, 168/2, 168*2))
