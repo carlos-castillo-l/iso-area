@@ -19,7 +19,8 @@
 # SOFTWARE.
 
 import sys
-import traceback
+import argparse
+import pyfiglet
 from accelergy.raw_inputs_2_dicts import RawInputs2Dicts
 from accelergy.system_state import SystemState
 from accelergy.component_class import ComponentClass
@@ -31,10 +32,49 @@ from accelergy.compound_component import CompoundComponent
 from accelergy.ERT_generator import EnergyReferenceTableGenerator, ERT_dict_to_obj
 from accelergy.ART_generator import AreaReferenceTableGenerator
 from accelergy.energy_calculator import EnergyCalculator
-from accelergy.io import parse_commandline_args, generate_output_files
-from accelergy.utils import *    
-    
-def run():
+from accelergy.io import generate_output_files
+from accelergy.utils import *
+
+
+def parse_commandline_args():
+    """
+    Overrides Accelergy's original parse_commandline_args to add an argument for the iso-area design mode.
+    """
+    ascii_banner = pyfiglet.figlet_format("Accelergy")
+    print(ascii_banner)
+    """parse command line inputs"""
+    parser = argparse.ArgumentParser(
+        description='Accelergy is an architecture-level energy estimator for accelerator designs. Accelergy allows '
+                    ' users to describe the architecture of a design with user-defined compound components and generates energy '
+                    'estimations according to the workload-generated action counts.')
+    parser.add_argument('-o', '--outdir', type=str, default='./',
+                        help = 'Path to output directory that stores '
+                               'the ERT and/or flattened_architecture and/or energy estimation. '
+                               'Default is current directory.')
+    parser.add_argument('-p', '--precision', type=int, default='5',
+                        help= 'Number of decimal points for generated energy values. '
+                              'Default is 3.')
+    parser.add_argument('-v', '--verbose', type=int, default = 0,
+                        help= 'If set to 1, Accelergy outputs the verbose version of the output files '
+                              'Default is 0')
+    parser.add_argument('-f', '--output_files',  nargs="*", type =str, default = ['all'],
+                         help= 'list that contains the desired output files.'
+                               ' Options include: ERT, ERT_summary, ART, ART_summary, energy_estimation, flattened_arch,'
+                               ' and all (which refers to all possible outputs)')
+    parser.add_argument('--oprefix', type =str, default = '',
+                         help= 'prefix that will be added to the output files names.')
+    parser.add_argument('files', nargs='*',
+                        help= 'list of input files in arbitrary order.'
+                              'Accelergy parses the top keys of the files to decide the type of input the file describes, '
+                                                                    'e.g., architecture description, '
+                                                                          'compound component class descriptions, etc. '
+                        )
+    parser.add_argument('--isoarea', type =int, default = 0,
+                         help= 'If set to 1, use Accelergy to find iso-area designs on the given architecture'
+                               'Default is 0')
+    return parser.parse_args()
+
+def parse_inputs(system_state):
     accelergy_version = 0.3
 
     # ----- Interpret Commandline Arguments
@@ -61,7 +101,6 @@ def run():
     compute_ART = 1 if oflags['ART'] or oflags['ART_summary'] else 0
 
     # ----- Global Storage of System Info
-    system_state = SystemState()
     system_state.set_accelergy_version(accelergy_version)
     # transport the input flag information to system state
     system_state.set_flag_s({'output_path': args.outdir,
@@ -73,7 +112,7 @@ def run():
     raw_dicts = RawInputs2Dicts(raw_input_info)
 
     # ----- Determine what operations should be performed
-    available_inputs = raw_dicts.get_available_inputs()
+    available_inputs = raw_dicts.get_available_inputs() # e.g. ['architecture_spec', 'compound_component_classes']
 
     # ---- Detecting config only cases and gracefully exiting
     if len(available_inputs) == 0:
@@ -119,18 +158,23 @@ def run():
         # ----- Add all available plug-ins
         system_state.add_plug_ins(plug_in_path_to_obj(raw_dicts.get_estimation_plug_in_paths(), output_prefix))
 
+    return raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART
+
+def compute_energy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate):
+    # ----- Determine what operations should be performed
+    available_inputs = raw_dicts.get_available_inputs()
     if compute_ERT and 'ERT' in available_inputs:
         # ERT/ ERT_summary/ energy estimates need to be generated with provided ERT
         #      ----> do not need to define components
         # ----- Get the ERT from raw inputs
         ert_dict = raw_dicts.get_ERT_dict()
         system_state.set_ERT(ERT_dict_to_obj({'ERT_dict': ert_dict,
-                                              'parser_version': accelergy_version,
+                                              'parser_version': system_state.parser_version,
                                               'precision': precision}))
 
     if compute_ERT and 'ERT' not in available_inputs:
             # ----- Generate Energy Reference Table
-            ert_gen = EnergyReferenceTableGenerator({'parser_version': accelergy_version,
+            ert_gen = EnergyReferenceTableGenerator({'parser_version': system_state.parser_version,
                                                      'pcs': system_state.pcs,
                                                      'ccs': system_state.ccs,
                                                      'plug_ins': system_state.plug_ins,
@@ -141,14 +185,21 @@ def run():
         # ----- Generate Energy Estimates
         action_counts_obj = action_counts_dict_2_obj(raw_dicts.get_action_counts_dict())
         system_state.set_action_counts(action_counts_obj)
-        energy_calc = EnergyCalculator({'parser_version': accelergy_version,
+        energy_calc = EnergyCalculator({'parser_version': system_state.parser_version,
                                         'action_counts': system_state.action_counts,
                                         'ERT': system_state.ERT})
         system_state.set_energy_estimations(energy_calc.energy_estimates)
+  
+def run():
+    # Create Global Storage of System Info
+    system_state = SystemState()
+    raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART = parse_inputs(system_state) # Updates the system state as well
+
+    compute_energy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate)
 
     if compute_ART: # if ART, ART_summary need to be generated
         # ----- Generate Area Reference Table
-        art_gen = AreaReferenceTableGenerator({'parser_version': accelergy_version,
+        art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
                                                'pcs': system_state.pcs,
                                                'ccs': system_state.ccs,
                                                'plug_ins': system_state.plug_ins,
