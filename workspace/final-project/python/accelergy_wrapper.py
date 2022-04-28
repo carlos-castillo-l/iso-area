@@ -99,19 +99,6 @@ def parse_inputs(args, system_state):
         arch_obj = arch_dict_2_obj(raw_dicts.get_flatten_arch_spec_dict(), system_state.cc_classes, system_state.pc_classes)
         system_state.set_arch_spec(arch_obj)
 
-        # print("\n\n\n", arch_obj.generate_flattened_arch(), "\n\n\n")
-
-        print("\n\n\n")
-        buffer_names = {"eyeriss.shared_glb"}
-        for component_name in arch_obj.get_component_name_list():
-            relative_comp_name = component_name[:]
-
-            if relative_comp_name[:7] == 'system.':
-                relative_comp_name = relative_comp_name[7:]
-            if relative_comp_name in buffer_names:
-                print(arch_obj.get_component(component_name))
-        print("\n\n\n")
-
     if (compute_ERT and 'ERT' not in available_inputs) or compute_ART:
         # ERT/ERT_summary/energy estimates/ART/ART summary need to be generated without provided ERT
         #        ----> all components need to be defined
@@ -175,22 +162,44 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
 def num_PE_generator(meshX, min_PE, max_PE):
     yield random.randint(min_PE/meshX, max_PE/meshX) * meshX
 
-def find_iso_area_designs(args, system_state):
-    """Buffers names are given to us through the arguments"""
-    arch_spec = system_state.self.arch_spec # Get the current architecture specifications
-    buffer_names = args.buffer_set # Read buffers from the command arguments
-    
-    # Find buffer components that we are allowed to modify
+def find_buffer_pe_comps(arch_spec, buffer_names):
+    # Find buffer and PE components that we are allowed to modify
     buffer_components = []
+    pe_components = []
+    curr_num_PEs = 0
     for component_name in arch_spec.get_component_name_list():
         relative_comp_name = component_name[:]
-        # Modify the name of the component name by removing 'system.'
-        if relative_comp_name[:7] == 'system.':
-            relative_comp_name = relative_comp_name[7:]
         if relative_comp_name in buffer_names:
             buffer_components.append(arch_spec.get_component(component_name))
+        
+        index_PE = relative_comp_name.find("PE")
+        if index_PE != -1:
+            if curr_num_PEs == 0:
+                num_PE_str = relative_comp_name[index_PE+6:]
+                j = num_PE_str.find("]")
+                curr_num_PEs = int(num_PE_str[:j]) + 1
+            pe_components.append(arch_spec.get_component(component_name))
+    return buffer_components, pe_components, curr_num_PEs
 
-    # Find PE component that we are allowed to modify
+
+def find_iso_area_designs(args, system_state):
+    """Buffers names are given to us through the arguments"""
+    arch_spec = system_state.arch_spec # Get the current architecture specifications
+    buffer_names = args.buffer_set # Read buffers from the commandline arguments
+    init_num_PEs = args.num_PE # Read the number of PEs from the commandline arguments
+    
+    
+    buffer_components, pe_components, curr_num_PEs = find_buffer_pe_comps(arch_spec, buffer_names)
+    print(buffer_components, pe_components, curr_num_PEs)
+
+    if init_num_PEs == 0:
+        init_num_PEs = curr_num_PEs
+
+    # Change the paramters
+
+
+
+
 
         
 
