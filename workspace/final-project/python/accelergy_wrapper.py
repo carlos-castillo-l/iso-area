@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 import sys
+import random
 from accelergy.raw_inputs_2_dicts import RawInputs2Dicts
 from accelergy.system_state import SystemState
 from accelergy.component_class import ComponentClass
@@ -41,7 +42,6 @@ def parse_inputs(args, system_state):
     path_arglist = args.files
     precision = args.precision
     desired_output_files = args.output_files
-    iso_area = args.iso_area
 
     # interpret desired output files
     oflags = {'ERT': 0, 'ERT_summary': 0, 'ART': 0, 'ART_summary': 0,
@@ -99,6 +99,19 @@ def parse_inputs(args, system_state):
         arch_obj = arch_dict_2_obj(raw_dicts.get_flatten_arch_spec_dict(), system_state.cc_classes, system_state.pc_classes)
         system_state.set_arch_spec(arch_obj)
 
+        # print("\n\n\n", arch_obj.generate_flattened_arch(), "\n\n\n")
+
+        print("\n\n\n")
+        buffer_names = {"eyeriss.shared_glb"}
+        for component_name in arch_obj.get_component_name_list():
+            relative_comp_name = component_name[:]
+
+            if relative_comp_name[:7] == 'system.':
+                relative_comp_name = relative_comp_name[7:]
+            if relative_comp_name in buffer_names:
+                print(arch_obj.get_component(component_name))
+        print("\n\n\n")
+
     if (compute_ERT and 'ERT' not in available_inputs) or compute_ART:
         # ERT/ERT_summary/energy estimates/ART/ART summary need to be generated without provided ERT
         #        ----> all components need to be defined
@@ -118,7 +131,7 @@ def parse_inputs(args, system_state):
         # ----- Add all available plug-ins
         system_state.add_plug_ins(plug_in_path_to_obj(raw_dicts.get_estimation_plug_in_paths(), output_prefix))
 
-    return raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART, iso_area
+    return raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART
 
 def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART):
     # ----- Determine what operations should be performed
@@ -158,22 +171,47 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
                                                'plug_ins': system_state.plug_ins,
                                                'precision': precision})
         system_state.set_ART(art_gen.get_ART())
+
+def num_PE_generator(meshX, min_PE, max_PE):
+    yield random.randint(min_PE/meshX, max_PE/meshX) * meshX
+
+def find_iso_area_designs(args, system_state):
+    """Buffers names are given to us through the arguments"""
+    arch_spec = system_state.self.arch_spec # Get the current architecture specifications
+    buffer_names = args.buffer_set # Read buffers from the command arguments
+    
+    # Find buffer components that we are allowed to modify
+    buffer_components = []
+    for component_name in arch_spec.get_component_name_list():
+        relative_comp_name = component_name[:]
+        # Modify the name of the component name by removing 'system.'
+        if relative_comp_name[:7] == 'system.':
+            relative_comp_name = relative_comp_name[7:]
+        if relative_comp_name in buffer_names:
+            buffer_components.append(arch_spec.get_component(component_name))
+
+    # Find PE component that we are allowed to modify
+
+        
+
   
 def run_accelergy(args):
     # Create Global Storage of System Info
     system_state = SystemState()
-    raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART, iso_area = parse_inputs(args, system_state) # Updates the system state as well
+    raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART = parse_inputs(args, system_state) # Updates the system state as well
 
-    print("\n\n\nRAW DICTS", raw_dicts, "\n\n\n")
-
-    if not iso_area:
+    if not args.iso_area:
         # Original usage of Accelergy
         compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART)
         # ----- Generate All Necessary Output Files
         generate_output_files(system_state)
-        
 
-def main_accelergy(args):
+    else:
+        find_iso_area_designs(args, system_state)
+
+
+
+def accelergy_wrapper(args):
     try:
         run_accelergy(args)
     except Exception as e:
