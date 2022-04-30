@@ -163,26 +163,19 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
 def num_PE_generator(min_PE, max_PE):
     meshX = 0
     meshY = 0
-
-    min_value = min_PE/4
-    max_value = max_PE/4
-
     prev_mesh = set()
     repeated = 0
+    max_reps = ((max_PE - min_PE)/2)**3
     while True:
-        # num_PEs = random.randrange(min_PE, max_PE, 2)
-        meshX = random.randrange(math.ceil(min_value), math.floor(max_value) + 1, 2)
-        meshY = random.randrange(math.ceil(min_value/meshX), math.floor(max_value/meshX) + 1, 2)
+        meshX = random.randrange(2, max_PE + 1, 2)
+        meshY = random.randrange(math.ceil(min_PE/meshX), math.floor(max_PE/meshX) + 1, 2)
         # Enforce even spatial dimensions for the PEs
-        meshX *= 2
-        meshY *= 2
-
         if (meshX,meshY) not in prev_mesh:
             repeated = 0
             prev_mesh.add((meshX,meshY))
             yield meshX*meshY, meshX
         else:
-            if repeated == 50:
+            if repeated == max_reps:
                 break
             repeated += 1
 
@@ -281,7 +274,7 @@ def get_num_components(component_name):
         num_components = component_name[start + 4: component_name.find(']')]
     return int(num_components)
 
-def find_best_buffer_area(system_state, precision, buffer_components, target_area, resolution=.01):
+def find_best_buffer_area(system_state, precision, buffer_components, target_area, resolution=.005):
     # Initialize estimation plugin interface
     buffer_component = buffer_components[next(iter(buffer_components))]
     # Get the memory depth of the buffer
@@ -348,8 +341,6 @@ def find_iso_area_designs(args, system_state):
     
     buffer_components, dummy_components, pe_components, curr_num_PEs = find_buffer_pe_comps(arch_spec, buffer_names, dummy_names)
 
-    print(dummy_components)
-
     if init_num_PEs == 0:
         init_num_PEs = curr_num_PEs
 
@@ -370,8 +361,11 @@ def find_iso_area_designs(args, system_state):
     print('\n\n\n')
     print("Total Area:", total_area)
     print(init_num_PEs)
+
+    results = "\n\n\nTotal Area: {}".format(str(total_area))
     best_percents = []
     for num_PEs, meshX in num_PE_generator(args.min_PE, args.max_PE):
+        results = "{}\nNumber of PEs: {}\tMeshX: {}\tMeshY: {}".format(results, num_PEs, meshX, num_PEs/meshX)
         # Update PE and Dummy components
         pe_components = modify_PEs(system_state, pe_components, num_PEs - 1, meshX) # Change the number of PEs
         dummy_components = modify_PEs(system_state, dummy_components, meshX, meshX) # Change the DummyBuffer (Eyeriss only)
@@ -379,11 +373,16 @@ def find_iso_area_designs(args, system_state):
         total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
         # Find new buffer size based on new PE number
         best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
-        best_percents.append(best_percent)
-        break
-    system_state.set_ART(art_gen.get_ART())
-    print("Best Percents:")
-    print(best_percents)
+        art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
+                                               'pcs': system_state.pcs,
+                                               'ccs': system_state.ccs,
+                                               'plug_ins': system_state.plug_ins,
+                                               'precision': args.precision})
+        system_state.set_ART(art_gen.get_ART())
+        # ----- Generate All Necessary Output Files
+        generate_output_files(system_state)
+        results = "{}\tBest Percent: {}".format(results, best_percent)
+    print(results)
     return 
 
 def run_accelergy(args):
