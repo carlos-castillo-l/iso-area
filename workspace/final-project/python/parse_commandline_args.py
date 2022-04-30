@@ -34,22 +34,26 @@ def parse_accelergy_commandline_args():
                                                                     'e.g., architecture description, '
                                                                           'compound component class descriptions, etc. '
                         )
-
+    # Iso-area design arguments
     parser.add_argument('--iso_area', type =int, default = 0,
                          help= 'If set to 1, use Accelergy to find iso-area designs on the given architecture'
                                'Default is 0')
-    parser.add_argument('--num_PE', type =float, default = 0,
+    parser.add_argument('--num_PE', type =int, default = 0,
                          help= 'Original number of PEs to search for iso-area designs'
                                'Default is 0, which means that the number of PEs will be derived from the arch spec')
-    parser.add_argument('--min_PE', type =float, default = 1,
+    parser.add_argument('--min_PE', type =int, default = 1,
                          help= 'Relative minimum number of PEs to search for iso-area designs'
                                'This parameter is multiply by the current number of PEs in the given architecture'
                                'Default is 1')
-    parser.add_argument('--max_PE', type =float, default = 1,
+    parser.add_argument('--max_PE', type =int, default = 1,
                          help= 'Relative maximum number of PEs to search for iso-area designs'
                                'This parameter is multiply by the current number of PEs in the given architecture'
                                'Default is 1')
-    parser.add_argument('--buffer_set', nargs='*', type =str, default = {},
-                         help= 'Takes a set of buffers that we can modify their sizes to find iso-area designs on the given architecture'
-                               'Default is an empty list. The name of the buffers need to be in full name in respect to the subtrees')
+    parser.add_argument('--buffer', type =str, default = '',
+                         help= 'Takes a global buffer that we can modify its sizes to find iso-area designs on the given architecture'
+                               'Default is no buffer')
+    parser.add_argument('--dummy_buffer', nargs='*', type =str, default = {},
+                         help= 'Takes a global buffer that we can modify to find iso-area designs on the given architecture'
+                               'Default is no dummy buffer'
+                               'Used for Eyeriss-like architectures to find better mappings as it uses the meshX of PEs')  
     return parser.parse_args()

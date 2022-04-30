@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
-import random
 from accelergy.raw_inputs_2_dicts import RawInputs2Dicts
 from accelergy.system_state import SystemState
 from accelergy.component_class import ComponentClass
@@ -33,6 +31,11 @@ from accelergy.ART_generator import AreaReferenceTableGenerator
 from accelergy.energy_calculator import EnergyCalculator
 from accelergy.io import generate_output_files
 from accelergy.utils import *
+
+import sys
+import math
+import random
+from collections import OrderedDict
 
 def parse_inputs(args, system_state):
     accelergy_version = 0.3
@@ -79,10 +82,6 @@ def parse_inputs(args, system_state):
         INFO("no input is provided, exiting...")
         sys.exit(0)
 
-    if compute_ART or flatten_architecture or compute_ERT and 'ERT' not in available_inputs:
-        # ----- Interpret the input architecture description using only the input information (w/o class definitions)
-        system_state.set_hier_arch_spec(raw_dicts.get_hier_arch_spec_dict())
-
     if flatten_architecture or (compute_ERT and 'ERT' not in available_inputs) or compute_ART:
         # architecture needs to be defined if
         #    (1) flattened architecture required output,
@@ -120,10 +119,12 @@ def parse_inputs(args, system_state):
 
     return raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART
 
-def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART):
+def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART, iso_area):
     # ----- Determine what operations should be performed
     available_inputs = raw_dicts.get_available_inputs()
-    if compute_ERT and 'ERT' in available_inputs:
+
+    # Only use the provided ERT if we are not running iso-area exploration
+    if compute_ERT and 'ERT' in available_inputs and not iso_area:
         # ERT/ ERT_summary/ energy estimates need to be generated with provided ERT
         #      ----> do not need to define components
         # ----- Get the ERT from raw inputs
@@ -132,7 +133,7 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
                                               'parser_version': system_state.parser_version,
                                               'precision': precision}))
 
-    if compute_ERT and 'ERT' not in available_inputs:
+    if (compute_ERT and 'ERT' not in available_inputs) or iso_area:
             # ----- Generate Energy Reference Table
             ert_gen = EnergyReferenceTableGenerator({'parser_version': system_state.parser_version,
                                                      'pcs': system_state.pcs,
@@ -159,51 +160,232 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
                                                'precision': precision})
         system_state.set_ART(art_gen.get_ART())
 
-def num_PE_generator(meshX, min_PE, max_PE):
-    yield random.randint(min_PE/meshX, max_PE/meshX) * meshX
+def num_PE_generator(min_PE, max_PE):
+    meshX = 0
+    meshY = 0
 
-def find_buffer_pe_comps(arch_spec, buffer_names):
+    min_value = min_PE/4
+    max_value = max_PE/4
+
+    prev_mesh = set()
+    repeated = 0
+    while True:
+        # num_PEs = random.randrange(min_PE, max_PE, 2)
+        meshX = random.randrange(math.ceil(min_value), math.floor(max_value) + 1, 2)
+        meshY = random.randrange(math.ceil(min_value/meshX), math.floor(max_value/meshX) + 1, 2)
+        # Enforce even spatial dimensions for the PEs
+        meshX *= 2
+        meshY *= 2
+
+        if (meshX,meshY) not in prev_mesh:
+            repeated = 0
+            prev_mesh.add((meshX,meshY))
+            yield meshX*meshY, meshX
+        else:
+            if repeated == 50:
+                break
+            repeated += 1
+
+def find_buffer_pe_comps(arch_spec, buffer_names, dummy_names):
     # Find buffer and PE components that we are allowed to modify
-    buffer_components = []
-    pe_components = []
+    buffer_components = {}
+    dummy_components = {}
+    pe_components = {}
     curr_num_PEs = 0
     for component_name in arch_spec.get_component_name_list():
         relative_comp_name = component_name[:]
         if relative_comp_name in buffer_names:
-            buffer_components.append(arch_spec.get_component(component_name))
+            buffer_components[component_name] = arch_spec.get_component(component_name)
         
+        if relative_comp_name in dummy_names:
+            dummy_components[component_name] = arch_spec.get_component(component_name)
+
         index_PE = relative_comp_name.find("PE")
         if index_PE != -1:
             if curr_num_PEs == 0:
                 num_PE_str = relative_comp_name[index_PE+6:]
                 j = num_PE_str.find("]")
                 curr_num_PEs = int(num_PE_str[:j]) + 1
-            pe_components.append(arch_spec.get_component(component_name))
-    return buffer_components, pe_components, curr_num_PEs
+            pe_components[component_name] = arch_spec.get_component(component_name)
+    return buffer_components, dummy_components, pe_components, curr_num_PEs
 
+def change_array_length(string, new_value):
+    start = string.find('[')
+    end = string.find(']')
+    return string[:start + 4] + new_value + string[end:]
+
+
+# TODO: Update the subcomponents of the components we are changing to re-set the area computations
+
+def reset_subcomponents(component, cc_classes, pc_classes):
+    component._subcomponents = {}
+    component.all_possible_subcomponents = {}
+    component.subcomponent_base_name_map = {}
+    component._actions = []
+    # Redefine subcomponents
+    component.set_subcomponents(cc_classes, pc_classes)
+    component.flatten_action_list(cc_classes)
+
+def modify_PEs(system_state, pe_components, num_PEs, meshX):
+    old_to_new = {}
+    old_pe_names = pe_components.keys()
+    for pe_name in old_pe_names:
+        pe_component = pe_components[pe_name]
+        # Update the name of the PE component to reflect the number of PEs
+        new_pe_name = change_array_length(pe_name, str(num_PEs))
+        # Update the name of the PE component
+        pe_component.name = new_pe_name
+        # Update the spatial dimensions of the PE object
+        attributes = pe_component.get_attributes()
+        attributes['meshX'] = meshX
+        # Update the arch spec of the system_state
+        del system_state.arch_spec.component_dict[pe_name]
+        system_state.arch_spec.component_dict[new_pe_name] = pe_component # ArchComp Component
+        # Update the ccs or pcs of the system_state
+        if pe_name in system_state.ccs:
+            ccs = system_state.ccs[pe_name]
+            ccs.name = new_pe_name
+            del system_state.ccs[pe_name]
+            system_state.ccs[new_pe_name] = ccs
+            old_to_new[pe_name] = new_pe_name, ccs
+        if pe_name in system_state.pcs:
+            pcs = system_state.pcs[pe_name]
+            pcs._name = new_pe_name
+            del system_state.pcs[pe_name]
+            system_state.pcs[new_pe_name] = pcs
+            # Store the old to new name map to update pe dictionary
+            old_to_new[pe_name] = new_pe_name, None
+    # Update the internal dict for pe_components
+    new_pe_components = {}
+    for old_name, (new_name, ccs) in old_to_new.items():
+        pe_component = pe_components[old_name]
+        new_pe_components[new_name] = pe_component
+        # Reset the subcomponents of the current component
+        if ccs != None:
+            reset_subcomponents(ccs, system_state.cc_classes, system_state.pc_classes)
+    return new_pe_components
+
+def get_area(art_gen, components):
+    art = art_gen.get_ART().get_ART()
+    total_area = 0
+    for table in art['ART']['tables']:
+        component_name = table['name']
+        if component_name in components:
+            total_area += table['area']
+    return total_area
+
+def get_num_components(component_name):
+    num_components = 1
+    start = component_name.find('[')
+    if start != -1:
+        num_components = component_name[start + 4: component_name.find(']')]
+    return int(num_components)
+
+def find_best_buffer_area(system_state, precision, buffer_components, target_area, resolution=.01):
+    # Initialize estimation plugin interface
+    buffer_component = buffer_components[next(iter(buffer_components))]
+    # Get the memory depth of the buffer
+    depth_key = 'memory_depth'
+    buffer_attributes = buffer_component.get_attributes()
+    for key in buffer_attributes:
+        if 'depth' in key:
+            depth_key = key
+    # ----- Generate Area Reference Table
+    art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
+                                               'pcs': system_state.pcs,
+                                               'ccs': system_state.ccs,
+                                               'plug_ins': system_state.plug_ins,
+                                               'precision': precision})
+    area = get_area(art_gen, buffer_components)
+    min_mem_depth = 0
+    max_mem_depth = float('inf')
+    mem_depth = buffer_attributes[depth_key]
+    best_area = (mem_depth, abs(target_area - area))
+    while area != target_area and mem_depth != 0:
+        if area > target_area:
+            max_mem_depth = mem_depth
+            mem_depth = min_mem_depth + (max_mem_depth - min_mem_depth)/2        
+        else:
+            min_mem_depth = mem_depth
+            if math.isinf(max_mem_depth):
+                mem_depth *= 2
+            else:
+                mem_depth = min_mem_depth + (max_mem_depth - min_mem_depth)/2
+        buffer_attributes[depth_key] = int(mem_depth)
+        reset_subcomponents(system_state.ccs[buffer_component.get_name()], system_state.cc_classes, system_state.pc_classes)
+        # Update the ART generator to reflect changes in memory depth
+        art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
+                                                'pcs': system_state.pcs,
+                                                'ccs': system_state.ccs,
+                                                'plug_ins': system_state.plug_ins,
+                                                'precision': precision})
+        area = get_area(art_gen, buffer_components)
+        # Find the area difference and keep the best area
+        area_diff = abs(target_area - area)
+        if area_diff < best_area[1]:
+            best_area = (mem_depth, area_diff)
+        # Check for termination of the search
+        if abs(area - target_area)/target_area < resolution: # Best area within 1% difference from target area
+            break
+    # Update the memory depth that provided the best area estimate
+    buffer_attributes[depth_key] = int(round(best_area[0]/8)*8)
+    reset_subcomponents(system_state.ccs[buffer_component.get_name()], system_state.cc_classes, system_state.pc_classes)
+    # Update the ART generator to reflect changes in memory depth
+    art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
+                                            'pcs': system_state.pcs,
+                                            'ccs': system_state.ccs,
+                                            'plug_ins': system_state.plug_ins,
+                                            'precision': precision})
+    percent_diff = abs(target_area - get_area(art_gen, buffer_components))/target_area
+    return percent_diff
 
 def find_iso_area_designs(args, system_state):
     """Buffers names are given to us through the arguments"""
     arch_spec = system_state.arch_spec # Get the current architecture specifications
-    buffer_names = args.buffer_set # Read buffers from the commandline arguments
     init_num_PEs = args.num_PE # Read the number of PEs from the commandline arguments
+    buffer_names = args.buffer # Read buffers from the commandline arguments
+    dummy_names = args.dummy_buffer # Read dummy buffers from the commandline arguments
     
-    
-    buffer_components, pe_components, curr_num_PEs = find_buffer_pe_comps(arch_spec, buffer_names)
-    print(buffer_components, pe_components, curr_num_PEs)
+    buffer_components, dummy_components, pe_components, curr_num_PEs = find_buffer_pe_comps(arch_spec, buffer_names, dummy_names)
+
+    print(dummy_components)
 
     if init_num_PEs == 0:
         init_num_PEs = curr_num_PEs
 
-    # Change the paramters
+    # Createa ART generator to compute area estimates
+    art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
+                                               'pcs': system_state.pcs,
+                                               'ccs': system_state.ccs,
+                                               'plug_ins': system_state.plug_ins,
+                                               'precision': args.precision})
 
+    # Get area of the current architecture
+    pe_area = get_area(art_gen, pe_components) # Get the area of the PEs
+    buffer_area = get_area(art_gen, buffer_components) # Get the area of the buffers
+    dummy_buffer_area = get_area(art_gen, dummy_components) # Get the are of the dummy buffer
 
+    total_area = pe_area*get_num_components(next(iter(pe_components))) + buffer_area*get_num_components(next(iter(buffer_components))) + dummy_buffer_area*get_num_components(next(iter(dummy_components)))
 
+    print('\n\n\n')
+    print("Total Area:", total_area)
+    print(init_num_PEs)
+    best_percents = []
+    for num_PEs, meshX in num_PE_generator(args.min_PE, args.max_PE):
+        # Update PE and Dummy components
+        pe_components = modify_PEs(system_state, pe_components, num_PEs - 1, meshX) # Change the number of PEs
+        dummy_components = modify_PEs(system_state, dummy_components, meshX, meshX) # Change the DummyBuffer (Eyeriss only)
+        total_pe_area = pe_area*get_num_components(next(iter(pe_components)))
+        total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
+        # Find new buffer size based on new PE number
+        best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
+        best_percents.append(best_percent)
+        break
+    system_state.set_ART(art_gen.get_ART())
+    print("Best Percents:")
+    print(best_percents)
+    return 
 
-
-        
-
-  
 def run_accelergy(args):
     # Create Global Storage of System Info
     system_state = SystemState()
@@ -211,13 +393,13 @@ def run_accelergy(args):
 
     if not args.iso_area:
         # Original usage of Accelergy
-        compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART)
+        compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART, args.iso_area)
+
+        find_iso_area_designs(args, system_state)
         # ----- Generate All Necessary Output Files
         generate_output_files(system_state)
-
     else:
         find_iso_area_designs(args, system_state)
-
 
 
 def accelergy_wrapper(args):
