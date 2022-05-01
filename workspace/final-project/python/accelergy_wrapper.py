@@ -369,7 +369,8 @@ def find_iso_area_designs(args, system_state):
 
         # TODO: Write a new file architecture for Timeloop to consume
         default_eyeriss = "../example_designs/eyeriss_like/arch/eyeriss_like.yaml"
-        yaml_arch = yaml_generator(default_eyeriss, num_PEs, buffer_components.__getattribute__())
+        component_name = next(iter(buffer_components))
+        yaml_arch = yaml_generator(default_eyeriss, num_PEs, buffer_components[component_name].get_attributes())
 
         # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
         os.system("timeloop-mapper {} -o {}".format(yaml_arch, "./mapper_out_{}".format(num_PEs)))
