@@ -160,24 +160,35 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
                                                'precision': precision})
         system_state.set_ART(art_gen.get_ART())
 
-def num_PE_generator(min_PE, max_PE):
-    meshX = 0
-    meshY = 0
-    prev_mesh = set()
-    repeated = 0
-    max_reps = ((max_PE - min_PE)/2)**3
-    while True:
-        meshX = random.randrange(2, max_PE + 1, 2)
-        meshY = random.randrange(math.ceil(min_PE/meshX), math.floor(max_PE/meshX) + 1, 2)
-        # Enforce even spatial dimensions for the PEs
-        if (meshX,meshY) not in prev_mesh:
-            repeated = 0
-            prev_mesh.add((meshX,meshY))
-            yield meshX*meshY, meshX
-        else:
-            if repeated == max_reps:
-                break
-            repeated += 1
+# def num_PE_generator(min_PE, max_PE):
+#     meshX = 0
+#     meshY = 0
+#     prev_mesh = set()
+#     repeated = 0
+#     max_reps = ((max_PE - min_PE)/2)**3
+#     while True:
+#         meshX = random.randrange(2, max_PE + 1, 2)
+#         meshY = random.randrange(math.ceil(min_PE/meshX), math.floor(max_PE/meshX) + 1, 2)
+#         # Enforce even spatial dimensions for the PEs
+#         if (meshX,meshY) not in prev_mesh:
+#             repeated = 0
+#             prev_mesh.add((meshX,meshY))
+#             yield meshX*meshY, meshX
+#         else:
+#             if repeated == max_reps:
+#                 break
+#             repeated += 1
+
+def num_PE_generator(meshX, min_PE, max_PE):
+    num_PEs = []
+    min_PEs = math.ceil(min_PE/meshX)
+    max_PEs = math.floor(max_PE/meshX)
+    for num_PE in range(min_PEs, max_PEs + 1):
+        num_PEs.append(int(num_PE) * meshX)
+    # Randomly shuffle the number of PEs
+    random.shuffle(num_PEs)
+    for num_PE in num_PEs:
+        yield num_PE, meshX
 
 def find_buffer_pe_comps(arch_spec, buffer_names, dummy_names):
     # Find buffer and PE components that we are allowed to modify
@@ -223,8 +234,8 @@ def modify_PEs(system_state, pe_components, num_PEs, meshX):
         pe_component = pe_components[pe_name]
         # Update the name of the PE component to reflect the number of PEs
         new_pe_name = change_num_components(pe_name, str(num_PEs))
-        # Update the name of the PE component
-        pe_component.name = new_pe_name
+        # Update the name of the ArchComp object
+        pe_component.dict_representation['name'] = new_pe_name
         # Update the spatial dimensions of the PE object
         attributes = pe_component.get_attributes()
         attributes['meshX'] = meshX
@@ -347,7 +358,6 @@ def find_iso_area_designs(args, system_state):
                                                'ccs': system_state.ccs,
                                                'plug_ins': system_state.plug_ins,
                                                'precision': args.precision})
-
     # Get area of the current architecture
     pe_area = get_area(art_gen, pe_components) # Get the area of the PEs
     buffer_area = get_area(art_gen, buffer_components) # Get the area of the buffers
@@ -355,7 +365,9 @@ def find_iso_area_designs(args, system_state):
     total_area = pe_area*get_num_components(next(iter(pe_components))) + buffer_area*get_num_components(next(iter(buffer_components))) + dummy_buffer_area*get_num_components(next(iter(dummy_components)))
 
     results = "\n\n\nTotal Area: {}".format(str(total_area))
-    for num_PEs, meshX in num_PE_generator(args.min_PE, args.max_PE):
+
+    initial_meshX = pe_components[next(iter(pe_components))].get_attributes()['meshX']
+    for num_PEs, meshX in num_PE_generator(initial_meshX, args.min_PE, args.max_PE):
         results = "{}\nNumber of PEs: {}\tMeshX: {}\tMeshY: {}".format(results, num_PEs, meshX, num_PEs/meshX)
         # Update PE and Dummy components
         pe_components = modify_PEs(system_state, pe_components, num_PEs - 1, meshX) # Change the number of PEs
@@ -366,12 +378,11 @@ def find_iso_area_designs(args, system_state):
         best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
 
         # TODO: Write a new file architecture for Timeloop to consume
-        # yaml_generator(filename, num_PEs, buffer_parameters)
 
         # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
 
         results = "{}\tBest Percent: {}".format(results, best_percent)
-        break 
+    print(results)
     return
 
 def run_accelergy(args):
