@@ -202,13 +202,10 @@ def find_buffer_pe_comps(arch_spec, buffer_names, dummy_names):
             pe_components[component_name] = arch_spec.get_component(component_name)
     return buffer_components, dummy_components, pe_components, curr_num_PEs
 
-def change_array_length(string, new_value):
+def change_num_components(string, new_value):
     start = string.find('[')
     end = string.find(']')
     return string[:start + 4] + new_value + string[end:]
-
-
-# TODO: Update the subcomponents of the components we are changing to re-set the area computations
 
 def reset_subcomponents(component, cc_classes, pc_classes):
     component._subcomponents = {}
@@ -225,7 +222,7 @@ def modify_PEs(system_state, pe_components, num_PEs, meshX):
     for pe_name in old_pe_names:
         pe_component = pe_components[pe_name]
         # Update the name of the PE component to reflect the number of PEs
-        new_pe_name = change_array_length(pe_name, str(num_PEs))
+        new_pe_name = change_num_components(pe_name, str(num_PEs))
         # Update the name of the PE component
         pe_component.name = new_pe_name
         # Update the spatial dimensions of the PE object
@@ -355,35 +352,27 @@ def find_iso_area_designs(args, system_state):
     pe_area = get_area(art_gen, pe_components) # Get the area of the PEs
     buffer_area = get_area(art_gen, buffer_components) # Get the area of the buffers
     dummy_buffer_area = get_area(art_gen, dummy_components) # Get the are of the dummy buffer
-
     total_area = pe_area*get_num_components(next(iter(pe_components))) + buffer_area*get_num_components(next(iter(buffer_components))) + dummy_buffer_area*get_num_components(next(iter(dummy_components)))
 
-    print('\n\n\n')
-    print("Total Area:", total_area)
-    print(init_num_PEs)
-
     results = "\n\n\nTotal Area: {}".format(str(total_area))
-    best_percents = []
     for num_PEs, meshX in num_PE_generator(args.min_PE, args.max_PE):
         results = "{}\nNumber of PEs: {}\tMeshX: {}\tMeshY: {}".format(results, num_PEs, meshX, num_PEs/meshX)
         # Update PE and Dummy components
         pe_components = modify_PEs(system_state, pe_components, num_PEs - 1, meshX) # Change the number of PEs
-        dummy_components = modify_PEs(system_state, dummy_components, meshX, meshX) # Change the DummyBuffer (Eyeriss only)
+        dummy_components = modify_PEs(system_state, dummy_components, meshX - 1, meshX) # Change the DummyBuffer (Eyeriss only)
         total_pe_area = pe_area*get_num_components(next(iter(pe_components)))
         total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
         # Find new buffer size based on new PE number
         best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
-        art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
-                                               'pcs': system_state.pcs,
-                                               'ccs': system_state.ccs,
-                                               'plug_ins': system_state.plug_ins,
-                                               'precision': args.precision})
-        system_state.set_ART(art_gen.get_ART())
-        # ----- Generate All Necessary Output Files
-        generate_output_files(system_state)
+
+        # TODO: Write a new file architecture for Timeloop to consume
+        # yaml_generator(filename, num_PEs, buffer_parameters)
+
+        # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
+
         results = "{}\tBest Percent: {}".format(results, best_percent)
-    print(results)
-    return 
+        break 
+    return
 
 def run_accelergy(args):
     # Create Global Storage of System Info
@@ -399,7 +388,6 @@ def run_accelergy(args):
         generate_output_files(system_state)
     else:
         find_iso_area_designs(args, system_state)
-
 
 def accelergy_wrapper(args):
     try:
