@@ -32,10 +32,12 @@ from accelergy.energy_calculator import EnergyCalculator
 from accelergy.io import generate_output_files
 from accelergy.utils import *
 
+import os
 import sys
 import math
 import random
 from collections import OrderedDict
+from iso_area import yaml_generator
 
 def parse_inputs(args, system_state):
     accelergy_version = 0.3
@@ -366,9 +368,11 @@ def find_iso_area_designs(args, system_state):
         best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
 
         # TODO: Write a new file architecture for Timeloop to consume
-        # yaml_generator(filename, num_PEs, buffer_parameters)
+        default_eyeriss = "../example_designs/eyeriss_like/arch/eyeriss_like.yaml"
+        yaml_arch = yaml_generator(default_eyeriss, num_PEs, buffer_components.__getattribute__())
 
         # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
+        os.system("timeloop-mapper {} -o {}".format(yaml_arch, "./mapper_out_{}".format(num_PEs)))
 
         results = "{}\tBest Percent: {}".format(results, best_percent)
         break 
