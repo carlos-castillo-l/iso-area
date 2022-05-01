@@ -373,9 +373,15 @@ def find_iso_area_designs(args, system_state):
         yaml_arch = yaml_generator(default_eyeriss, num_PEs, buffer_components[component_name].get_attributes())
 
         # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
-        os.system("timeloop-mapper {} -o {}".format(yaml_arch, "./mapper_out_{}".format(num_PEs)))
+        layer_shapes = ['AlexNet', 'VGG01']
+        for layer in layer_shapes:
+            components = '../example_designs/eyeriss_like/arch/*.yaml'
+            constraints = '../example_designs/eyeriss_like/constraints/*.yaml'
+            mapper = '../example_designs/eyeriss_like/mapper/mapper.yaml'
+            layer_shape = '../layer_shapes/{}/*.yaml'.format(layer)
+            os.system("timeloop-mapper {} {} {} {} {} -o {}".format(yaml_arch, components, constraints, mapper, layer_shape, "./mapper_out_{}".format(num_PEs)))
 
-        results = "{}\tBest Percent: {}".format(results, best_percent)
+            results = "{}\tBest Percent: {}".format(results, best_percent)
         break 
     return
 
