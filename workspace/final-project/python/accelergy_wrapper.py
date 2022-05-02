@@ -39,6 +39,10 @@ import random
 from collections import OrderedDict
 from iso_area import yaml_generator
 
+LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1.yaml', 'AlexNet_layer2.yaml', 'AlexNet_layer3.yaml', 'AlexNet_layer4.yaml', 'AlexNet_layer5.yaml'],
+                'VGG01': ['VGG01_layer1.yaml', 'VGG01_layer2.yaml', 'VGG01_layer3.yaml', 'VGG01_layer4.yaml', 'VGG01_layer5.yaml',
+                            'VGG01_layer6.yaml', 'VGG01_layer7.yaml', 'VGG01_layer8.yaml']}
+
 def parse_inputs(args, system_state):
     accelergy_version = 0.3
 
@@ -182,6 +186,7 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
 #             repeated += 1
 
 def num_PE_generator(meshX, min_PE, max_PE):
+    # yield 196, 14
     num_PEs = []
     min_PEs = math.ceil(min_PE/meshX)
     max_PEs = math.floor(max_PE/meshX)
@@ -295,10 +300,10 @@ def find_best_buffer_area(system_state, precision, buffer_components, target_are
             depth_key = key
     # ----- Generate Area Reference Table
     art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
-                                               'pcs': system_state.pcs,
-                                               'ccs': system_state.ccs,
-                                               'plug_ins': system_state.plug_ins,
-                                               'precision': precision})
+                                            'pcs': system_state.pcs,
+                                            'ccs': system_state.ccs,
+                                            'plug_ins': system_state.plug_ins,
+                                            'precision': precision})
     area = get_area(art_gen, buffer_components)
     min_mem_depth = 0
     max_mem_depth = float('inf')
@@ -348,6 +353,18 @@ def find_iso_area_designs(args, system_state):
     init_num_PEs = args.num_PE # Read the number of PEs from the commandline arguments
     buffer_names = args.buffer # Read buffers from the commandline arguments
     dummy_names = args.dummy_buffer # Read dummy buffers from the commandline arguments
+
+    design_path = args.files[0][:-5]
+    components_path = design_path + '/arch/components/*.yaml'
+    constraints_path = design_path + '/constraints/*.yaml'
+    mapper_path = design_path + '/mapper/mapper.yaml'
+    layer_path = '../layer_shapes'
+
+    arch_name = design_path.split('/')[-1]
+    input_yaml = design_path + '/arch/' + arch_name + '.yaml'
+
+    # Create directory for hold output
+    create_folder(args.outdir)
     
     buffer_components, dummy_components, pe_components, curr_num_PEs = find_buffer_pe_comps(arch_spec, buffer_names, dummy_names)
 
@@ -356,10 +373,10 @@ def find_iso_area_designs(args, system_state):
 
     # Createa ART generator to compute area estimates
     art_gen = AreaReferenceTableGenerator({'parser_version': system_state.parser_version,
-                                               'pcs': system_state.pcs,
-                                               'ccs': system_state.ccs,
-                                               'plug_ins': system_state.plug_ins,
-                                               'precision': args.precision})
+                                            'pcs': system_state.pcs,
+                                            'ccs': system_state.ccs,
+                                            'plug_ins': system_state.plug_ins,
+                                            'precision': args.precision})
     # Get area of the current architecture
     pe_area = get_area(art_gen, pe_components) # Get the area of the PEs
     buffer_area = get_area(art_gen, buffer_components) # Get the area of the buffers
@@ -369,6 +386,7 @@ def find_iso_area_designs(args, system_state):
     results = "\n\n\nTotal Area: {}".format(str(total_area))
 
     initial_meshX = pe_components[next(iter(pe_components))].get_attributes()['meshX']
+    buffer_name = next(iter(buffer_components)) # Assumes there's only one buffer in the buffer components to modify
     for num_PEs, meshX in num_PE_generator(initial_meshX, args.min_PE, args.max_PE):
         results = "{}\nNumber of PEs: {}\tMeshX: {}\tMeshY: {}".format(results, num_PEs, meshX, num_PEs/meshX)
         # Update PE and Dummy components
@@ -378,27 +396,23 @@ def find_iso_area_designs(args, system_state):
         total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
         # Find new buffer size based on new PE number
         best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
+        results = "{}\tBest Percent: {}".format(results, best_percent)
 
         # TODO: Write a new file architecture for Timeloop to consume
-        default_eyeriss = "../example_designs/eyeriss_like/arch/eyeriss_like.yaml"
-        component_name = next(iter(buffer_components))
-        yaml_arch = yaml_generator(default_eyeriss, num_PEs, buffer_components[component_name].get_attributes())
+        output_yaml = args.outdir + arch_name + '_' + str(num_PEs) + '_PEs/' + arch_name + '_' + str(num_PEs) + '_PEs.yaml'
+        yaml_arch = yaml_generator(input_yaml, output_yaml, int(num_PEs - 1), buffer_components[buffer_name].get_attributes())
 
         # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
-        layer_shapes_number = {'AlexNet': ['AlexNet_layer1.yaml', 'AlexNet_layer2.yaml', 'AlexNet_layer3.yaml',
-                                'AlexNet_layer4.yaml', 'AlexNet_layer5.yaml'], 'VGG01': ['VGG01_layer1.yaml',
-                                'VGG01_layer2.yaml', 'VGG01_layer3.yaml', 'VGG01_layer4.yaml', 'VGG01_layer5.yaml',
-                                'VGG01_layer6.yaml', 'VGG01_layer7.yaml', 'VGG01_layer8.yaml']}
-        for layer, layer_number in layer_shapes_number.items():
-            for num in layer_number:
-                components = '../example_designs/eyeriss_like/arch/*.yaml'
-                constraints = '../example_designs/eyeriss_like/constraints/*.yaml'
-                mapper = '../example_designs/eyeriss_like/mapper/mapper.yaml'
-                layer_shape = '../layer_shapes/{}/{}.yaml'.format(layer, num)
-                os.system("timeloop-mapper {} {} {} {} {} -o {}".format(yaml_arch, components, constraints, mapper, layer_shape, "./mapper_out_{}".format(num_PEs)))
-
-                results = "{}\tBest Percent: {}".format(results, best_percent)
-        break 
+        for workload, layers in LAYER_SHAPES.items():
+            input_workload_path = layer_path + '/' + workload
+            output_workload_path = args.outdir + arch_name + '_' + str(num_PEs) + '_PEs/' + workload
+            for layer in layers:
+                create_folder(output_workload_path + '/' + layer[:-5])
+                # print("timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
+                os.system("timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
+                break
+            break
+        break
     return
 
 def run_accelergy(args):
@@ -412,7 +426,7 @@ def run_accelergy(args):
 
         find_iso_area_designs(args, system_state)
         # ----- Generate All Necessary Output Files
-        generate_output_files(system_state)
+        # generate_output_files(system_state)
     else:
         find_iso_area_designs(args, system_state)
 
