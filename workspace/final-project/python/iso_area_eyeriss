@@ -1,1 +1,1 @@
-python iso_final.py ../example_designs/eyeriss_like/arch -o output/ --min_PE 64 --max_PE 128 --buffer system.eyeriss.shared_glb --dummy_buffer system.eyeriss.DummyBuffer[0..13]
+python iso_final.py ../example_designs/eyeriss_like/arch -o output/ --iso_area 1 --min_PE 84 --max_PE 336 --buffer system.eyeriss.shared_glb --dummy_buffer system.eyeriss.DummyBuffer[0..13]

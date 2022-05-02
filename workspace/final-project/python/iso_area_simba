@@ -1,0 +1,1 @@
+python iso_final.py ../example_designs/simba_like/arch -o output/ --iso_area 1 --min_PE 16 --max_PE 64 --target_area 2112259.02 --buffer System.ws.GlobalBuffer

@@ -18,6 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import shlex
+import signal
+import time
 from accelergy.raw_inputs_2_dicts import RawInputs2Dicts
 from accelergy.system_state import SystemState
 from accelergy.component_class import ComponentClass
@@ -36,12 +39,14 @@ import os
 import sys
 import math
 import random
+import subprocess
 from collections import OrderedDict
 from iso_area import yaml_generator
 
 LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1.yaml', 'AlexNet_layer2.yaml', 'AlexNet_layer3.yaml', 'AlexNet_layer4.yaml', 'AlexNet_layer5.yaml'],
                 'VGG01': ['VGG01_layer1.yaml', 'VGG01_layer2.yaml', 'VGG01_layer3.yaml', 'VGG01_layer4.yaml', 'VGG01_layer5.yaml',
                             'VGG01_layer6.yaml', 'VGG01_layer7.yaml', 'VGG01_layer8.yaml']}
+TIMELOOP_TIMEOUT = 75 # in seconds
 
 def parse_inputs(args, system_state):
     accelergy_version = 0.3
@@ -166,27 +171,18 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
                                                'precision': precision})
         system_state.set_ART(art_gen.get_ART())
 
-# def num_PE_generator(min_PE, max_PE):
-#     meshX = 0
-#     meshY = 0
-#     prev_mesh = set()
-#     repeated = 0
-#     max_reps = ((max_PE - min_PE)/2)**3
-#     while True:
-#         meshX = random.randrange(2, max_PE + 1, 2)
-#         meshY = random.randrange(math.ceil(min_PE/meshX), math.floor(max_PE/meshX) + 1, 2)
-#         # Enforce even spatial dimensions for the PEs
-#         if (meshX,meshY) not in prev_mesh:
-#             repeated = 0
-#             prev_mesh.add((meshX,meshY))
-#             yield meshX*meshY, meshX
-#         else:
-#             if repeated == max_reps:
-#                 break
-#             repeated += 1
+def find_factors(num):
+    result = []
+    i = 1
+    while i*i <= num:
+        if num % i == 0:
+            result.append(i)
+            if num//i != i:
+                result.append(num//i)
+        i += 1
+    return sorted(result)
 
 def num_PE_generator(meshX, min_PE, max_PE):
-    yield 252, 14
     num_PEs = []
     min_PEs = math.ceil(min_PE/meshX)
     max_PEs = math.floor(max_PE/meshX)
@@ -196,6 +192,17 @@ def num_PE_generator(meshX, min_PE, max_PE):
     random.shuffle(num_PEs)
     for num_PE in num_PEs:
         yield num_PE, meshX
+
+def num_PE_generator_v2(min_PE, max_PE):
+    results =[]
+    for num_PE in range(min_PE, max_PE + 1, 2):
+        factors = find_factors(num_PE)
+        for meshX in factors:
+            results.append((num_PE, meshX))
+    random.shuffle(results)
+
+    for result in results:
+        yield result
 
 def find_buffer_pe_comps(arch_spec, buffer_names, dummy_names):
     # Find buffer and PE components that we are allowed to modify
@@ -333,7 +340,7 @@ def find_best_buffer_area(system_state, precision, buffer_components, target_are
         if area_diff < best_area[1]:
             best_area = (mem_depth, area_diff)
         # Check for termination of the search
-        if abs(area - target_area)/target_area < resolution: # Best area within 1% difference from target area
+        if abs(area - target_area)/target_area < resolution or abs(max_mem_depth-min_mem_depth) < 5: # Best area within 1% difference from target area
             break
     # Update the memory depth that provided the best area estimate
     buffer_attributes[depth_key] = int(round(best_area[0]/8)*8)
@@ -353,6 +360,7 @@ def find_iso_area_designs(args, system_state):
     init_num_PEs = args.num_PE # Read the number of PEs from the commandline arguments
     buffer_names = args.buffer # Read buffers from the commandline arguments
     dummy_names = args.dummy_buffer # Read dummy buffers from the commandline arguments
+    target_area = args.target_area # Read the target area
 
     design_path = args.files[0][:-5]
     components_path = design_path + '/arch/components/*.yaml'
@@ -381,9 +389,16 @@ def find_iso_area_designs(args, system_state):
     pe_area = get_area(art_gen, pe_components) # Get the area of the PEs
     buffer_area = get_area(art_gen, buffer_components) # Get the area of the buffers
     dummy_buffer_area = get_area(art_gen, dummy_components) # Get the are of the dummy buffer
-    total_area = pe_area*get_num_components(next(iter(pe_components))) + buffer_area*get_num_components(next(iter(buffer_components))) + dummy_buffer_area*get_num_components(next(iter(dummy_components)))
 
-    results = "\n\n\nTotal Area: {}".format(str(total_area))
+    total_area = pe_area*get_num_components(next(iter(pe_components))) + buffer_area*get_num_components(next(iter(buffer_components)))
+
+    if len(dummy_components) > 0:
+        total_area += dummy_buffer_area*get_num_components(next(iter(dummy_components)))
+
+    if target_area == 0:
+        target_area = total_area
+
+    results = "\n\n\nTarget Area: {}".format(str(target_area))
 
     initial_meshX = pe_components[next(iter(pe_components))].get_attributes()['meshX']
     buffer_name = next(iter(buffer_components)) # Assumes there's only one buffer in the buffer components to modify
@@ -393,26 +408,32 @@ def find_iso_area_designs(args, system_state):
         pe_components = modify_PEs(system_state, pe_components, num_PEs - 1, meshX) # Change the number of PEs
         dummy_components = modify_PEs(system_state, dummy_components, meshX - 1, meshX) # Change the DummyBuffer (Eyeriss only)
         total_pe_area = pe_area*get_num_components(next(iter(pe_components)))
-        total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
+        total_dummy_buffer_area = 0
+        if len(dummy_components) > 0:
+            total_dummy_buffer_area = dummy_buffer_area*get_num_components(next(iter(dummy_components)))
         # Find new buffer size based on new PE number
-        best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, total_area - total_pe_area - total_dummy_buffer_area)
+        best_percent = find_best_buffer_area(system_state, args.precision, buffer_components, target_area - total_pe_area - total_dummy_buffer_area)
         results = "{}\tBest Percent: {}".format(results, best_percent)
 
-        # TODO: Write a new file architecture for Timeloop to consume
+        # Write a new file architecture for Timeloop to consume
         output_yaml = args.outdir + arch_name + '_' + str(num_PEs) + '_PEs/' + arch_name + '_' + str(num_PEs) + '_PEs.yaml'
         yaml_arch = yaml_generator(input_yaml, output_yaml, int(num_PEs - 1), buffer_components[buffer_name].get_attributes())
 
-        # TODO: Run Timeloop to automatically search for the best mapping and get energy and latency results
+        # Run Timeloop to automatically search for the best mapping and get energy and latency results
         for workload, layers in LAYER_SHAPES.items():
             input_workload_path = layer_path + '/' + workload
             output_workload_path = args.outdir + arch_name + '_' + str(num_PEs) + '_PEs/' + workload
             for layer in layers:
-                create_folder(output_workload_path + '/' + layer[:-5])
-                # print("timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
-                os.system("timeloop-mapper {} {} {} {} {} -o {} -v 1".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
-                break
-            break
-        break
+                layer_output_path = output_workload_path + '/' + layer[:-5]
+                create_folder(layer_output_path)
+                command = "exec timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/' + layer, layer_output_path)
+                p = subprocess.Popen(command, shell=True)
+                try:
+                    p.wait(TIMELOOP_TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    p.send_signal(signal.SIGINT)
+                    p.wait()
+                print("\nDone with:", arch_name + '_' + str(num_PEs) + '_PEs_' + workload)
     return
 
 def run_accelergy(args):
@@ -423,11 +444,10 @@ def run_accelergy(args):
     if not args.iso_area:
         # Original usage of Accelergy
         compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT, compute_energy_estimate, compute_ART, args.iso_area)
-
-        find_iso_area_designs(args, system_state)
         # ----- Generate All Necessary Output Files
-        # generate_output_files(system_state)
+        generate_output_files(system_state)
     else:
+        # Find iso-area designs and feed them to Timeloop mapper to evaluate the architectures
         find_iso_area_designs(args, system_state)
 
 def accelergy_wrapper(args):

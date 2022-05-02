@@ -38,6 +38,9 @@ def parse_accelergy_commandline_args():
     parser.add_argument('--iso_area', type =int, default = 0,
                          help= 'If set to 1, use Accelergy to find iso-area designs on the given architecture'
                                'Default is 0')
+    parser.add_argument('--target_area', type =float, default = 0,
+                         help= 'If set to 0, use Accelergy to find the area of the given architecture'
+                               'Default is 0')
     parser.add_argument('--num_PE', type =int, default = 0,
                          help= 'Original number of PEs to search for iso-area designs'
                                'Default is 0, which means that the number of PEs will be derived from the arch spec')
