@@ -186,7 +186,7 @@ def compute_accelergy_estimates(system_state, raw_dicts, precision, compute_ERT,
 #             repeated += 1
 
 def num_PE_generator(meshX, min_PE, max_PE):
-    # yield 196, 14
+    yield 252, 14
     num_PEs = []
     min_PEs = math.ceil(min_PE/meshX)
     max_PEs = math.floor(max_PE/meshX)
@@ -409,7 +409,7 @@ def find_iso_area_designs(args, system_state):
             for layer in layers:
                 create_folder(output_workload_path + '/' + layer[:-5])
                 # print("timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
-                os.system("timeloop-mapper {} {} {} {} {} -o {}".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
+                os.system("timeloop-mapper {} {} {} {} {} -o {} -v 1".format(output_yaml, components_path, constraints_path, mapper_path, input_workload_path + '/*.yaml', output_workload_path + '/' + layer[:-5]))
                 break
             break
         break
