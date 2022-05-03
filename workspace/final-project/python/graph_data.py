@@ -16,6 +16,36 @@ ALEXNET_LAYERS = [2, 3, 4, 5]
 
 VGG_LAYERS = [1, 2, 3, 4, 5, 6, 7, 8]
 
+alexnet_cycles_data = []
+alexnet_energy_data = []
+vgg_cycles_data = []
+vgg_energy_data = []
+important_data_reached = False
+for workload, layers in LAYER_SHAPES.items():
+    for layer in layers:
+        filename = './output/eyeriss_like/eyeriss_like_168_PEs/{}/{}/timeloop-mapper.stats.txt'.format(workload, layer)
+        with open(filename, 'r') as file:
+            for line in file:
+                data = line.split()
+
+                if 'Summary' in data: important_data_reached = True
+
+                if important_data_reached and len(data) != 0:
+                    section = data[0]
+
+                    if section == 'Cycles:':
+                        value = int(data[1])
+                        if workload == 'AlexNet': alexnet_cycles_data.append(value)
+                        else: vgg_cycles_data.append(value)
+                    if section == 'Energy:':
+                        value = float(data[1])
+                        if workload == 'AlexNet': alexnet_energy_data.append(value)
+                        else: vgg_energy_data.append(value)
+alexnet_cycles_avg = sum(alexnet_cycles_data)/len(alexnet_cycles_data)
+alexnet_energy_avg = sum(alexnet_energy_data)/len(alexnet_energy_data)
+vgg_cycles_avg = sum(vgg_cycles_data)/len(vgg_cycles_data)
+vgg_energy_avg = sum(vgg_energy_data)/len(vgg_energy_data)
+
 def graph_data():
     # alexnet_cycles_data = []
     # alexnet_energy_data = []
@@ -44,11 +74,11 @@ def graph_data():
                             if section == 'Cycles:':
                                 value = int(data[1])
                                 if workload == 'AlexNet': alexnet_cycles_data.append(value)
-                                else: vgg_cycles_data.append(value)
+                                else: vgg_cycles_data.append(value/vgg_cycles_avg)
                             if section == 'Energy:':
                                 value = float(data[1])
                                 if workload == 'AlexNet': alexnet_energy_data.append(value)
-                                else: vgg_energy_data.append(value)
+                                else: vgg_energy_data.append(value/vgg_energy_avg)
             curr_num_pes = NUM_PES[workload_num]                    
 
         # 336 PEs - outlier
@@ -58,25 +88,29 @@ def graph_data():
             plt.annotate(str(layer_num), (alexnet_cycles_data[i], alexnet_energy_data[i]), textcoords="offset points", xytext=(i*4,10),  ha='center')
         graph_title = 'Latency vs Energy per Layer - AlexNet ' + str(curr_num_pes) + ' PEs'
         plt.title(graph_title)
-        plt.xlabel('Latency (num cyscles)', fontweight='bold')
+        plt.xlabel('Latency (num cycles)', fontweight='bold')
         plt.ylabel('Energy consumption (uJ)', fontweight='bold')
         plt.ylim(0, 5000)
         plt.xlim(0, 7900000)
+        # plt.ylim(0, 2.4) # normalized
+        # plt.xlim(0, 4.9) # normalized
         plt.savefig(graph_title + '.png')
         plt.show()
 
-        plt.scatter(vgg_cycles_data, vgg_energy_data)
-        for i in range(len(VGG_LAYERS)):
-            layer_num = VGG_LAYERS[i]
-            plt.annotate(str(layer_num), (vgg_cycles_data[i], vgg_energy_data[i]), textcoords="offset points", xytext=(i*4,10), ha='center')
-        graph_title = 'Latency vs Energy per Layer - VGG01 ' + str(curr_num_pes) + ' PEs'
-        plt.title(graph_title)
-        plt.xlabel('Latency (num cycles)', fontweight='bold')
-        plt.ylabel('Energy consumption (uJ)', fontweight='bold')
-        plt.ylim(0, 29000)
-        plt.xlim(0, 39000000)
-        plt.savefig(graph_title + '.png')
-        plt.show()s
+        # plt.scatter(vgg_cycles_data, vgg_energy_data)
+        # for i in range(len(VGG_LAYERS)):
+        #     layer_num = VGG_LAYERS[i]
+        #     plt.annotate(str(layer_num), (vgg_cycles_data[i], vgg_energy_data[i]), textcoords="offset points", xytext=(i*4,5), ha='center')
+        # graph_title = 'Latency vs Energy per Layer - VGG01 ' + str(curr_num_pes) + ' PEs - normalized'
+        # plt.title(graph_title)
+        # plt.xlabel('Latency (num cycles)', fontweight='bold')
+        # plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+        # # plt.ylim(0, 29000)
+        # # plt.xlim(0, 39000000)
+        # plt.ylim(0, 2.9) # normalized
+        # plt.xlim(0, 4.4) # normalized
+        # plt.savefig(graph_title + '.png')
+        # plt.show()
 
         workload_num += 1
 
