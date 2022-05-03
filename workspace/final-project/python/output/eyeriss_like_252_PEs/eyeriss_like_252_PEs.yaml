@@ -21,7 +21,7 @@ architecture:
             - name: shared_glb
               class: smartbuffer_SRAM
               attributes:
-                memory_depth: 10112
+                memory_depth: 10088
                 memory_width: 64
                 n_banks: 32
                 block-size: 4
