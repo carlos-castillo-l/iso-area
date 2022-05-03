@@ -12,7 +12,7 @@ STATIONARY_PE_SHAPES = ['_96_PEs', '_112_PEs', '_128_PEs',
                 '_272_PEs', '_288_PEs', '_304_PEs', '_320_PEs',
                 '_336_PEs']
 
-EYERISS_SHAPES = ['_84_PEs', '_98_PEs', '_112_PEs', '_140_PEs', '_154_PEs', '_168_PEs', '_182_PEs', '_196_PEs',
+EYERISS_SHAPES = ['_84_PEs', '_98_PEs', '_112_PEs', '_126_PEs', '_140_PEs', '_154_PEs', '_168_PEs', '_182_PEs', '_196_PEs',
                 '_210_PEs', '_224_PEs', '_238_PEs', '_252_PEs', '_266_PEs', '_280_PEs', '_294_PEs', '_308_PEs',
                 '_322_PEs', '_336_PEs']
 
@@ -142,7 +142,7 @@ def graph_data(output):
     
     # BAR GRAPHS
     graph_title = 'Number of PEs vs Normalized Energy - AlexNet'
-    plt.bar([i for i in range(len(NUM_PES))],  alexnet_normalized_energy, tick_label=[str(j) for j in NUM_PES])
+    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Number of PEs', fontweight='bold')
     plt.ylabel('Energy consumption (uJ)', fontweight='bold')
@@ -150,7 +150,7 @@ def graph_data(output):
     plt.show()
 
     graph_title = 'Number of PEs vs Normalized Energy - VGG01'
-    plt.bar([i for i in range(len(NUM_PES))],  vgg_normalized_energy, tick_label=[str(j) for j in NUM_PES])
+    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Number of PEs', fontweight='bold')
     plt.ylabel('Energy consumption (uJ)', fontweight='bold')
@@ -158,7 +158,7 @@ def graph_data(output):
     plt.show()
 
     graph_title = 'Number of PEs vs Normalized Latency - AlexNet'
-    plt.bar([i for i in range(len(NUM_PES))],  alexnet_normalized_cycles, tick_label=[str(j) for j in NUM_PES])
+    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_cycles, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Latency (num cycles)', fontweight='bold')
     plt.ylabel('Energy consumption (uJ)', fontweight='bold')
@@ -166,7 +166,7 @@ def graph_data(output):
     plt.show()
 
     graph_title = 'Number of PEs vs Normalized Latency - VGG01'
-    plt.bar([i for i in range(len(NUM_PES))],  vgg_normalized_cycles, tick_label=[str(j) for j in NUM_PES])
+    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_cycles, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Latency (num cycles)', fontweight='bold')
     plt.ylabel('Energy consumption (uJ)', fontweight='bold')
