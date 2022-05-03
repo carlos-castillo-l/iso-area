@@ -1,0 +1,17 @@
+ART:
+  version: 0.3
+  tables:
+  - name: system.simple_ws.PE[0..319].mac
+    area: 1239.5
+  - name: system.DRAM
+    area: 0
+  - name: system.simple_ws.PE[0..319].pe_spad
+    area: 3634.68
+  - name: system.simple_ws.PE[0..319].weight_reg
+    area: 5.98
+  - name: system.simple_ws.PE[0..319].input_activation_reg
+    area: 5.98
+  - name: system.simple_ws.PE[0..319].output_activation_reg
+    area: 5.98
+  - name: system.simple_ws.shared_glb
+    area: 543419.0

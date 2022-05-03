@@ -1,0 +1,753 @@
+ERT:
+  version: 0.3
+  tables:
+  - name: system.simple_ws.PE[0..223].mac
+    actions:
+    - name: mac_random
+      arguments: null
+      energy: 2.20035
+    - name: mac_reused
+      arguments: null
+      energy: 1.87673
+    - name: mac_gated
+      arguments: null
+      energy: 0.10285
+    - name: idle
+      arguments: null
+      energy: 0.06595
+  - name: system.DRAM
+    actions:
+    - name: read
+      arguments: null
+      energy: 512
+    - name: write
+      arguments: null
+      energy: 512
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: system.simple_ws.PE[0..223].pe_spad
+    actions:
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 0.06053
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 0.19861
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1.44744
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1.58552
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 0.06053
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 0.19861
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1.44744
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1.58552
+    - name: idle
+      arguments: null
+      energy: 0.02363
+  - name: system.simple_ws.PE[0..223].weight_reg
+    actions:
+    - name: access
+      arguments: null
+      energy: 0.009
+  - name: system.simple_ws.PE[0..223].input_activation_reg
+    actions:
+    - name: access
+      arguments: null
+      energy: 0.009
+  - name: system.simple_ws.PE[0..223].output_activation_reg
+    actions:
+    - name: access
+      arguments: null
+      energy: 0.009
+  - name: system.simple_ws.shared_glb
+    actions:
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 0.05417
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 49.20091
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 0.71239
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 49.85913
+    - name: write
+      arguments:
+        address_delta: 2
+        data_delta: 0
+      energy: 1.3706
+    - name: write
+      arguments:
+        address_delta: 2
+        data_delta: 1
+      energy: 50.51734
+    - name: write
+      arguments:
+        address_delta: 3
+        data_delta: 0
+      energy: 2.02882
+    - name: write
+      arguments:
+        address_delta: 3
+        data_delta: 1
+      energy: 51.17556
+    - name: write
+      arguments:
+        address_delta: 4
+        data_delta: 0
+      energy: 2.68703
+    - name: write
+      arguments:
+        address_delta: 4
+        data_delta: 1
+      energy: 51.83377
+    - name: write
+      arguments:
+        address_delta: 5
+        data_delta: 0
+      energy: 3.34525
+    - name: write
+      arguments:
+        address_delta: 5
+        data_delta: 1
+      energy: 52.49199
+    - name: write
+      arguments:
+        address_delta: 6
+        data_delta: 0
+      energy: 4.00346
+    - name: write
+      arguments:
+        address_delta: 6
+        data_delta: 1
+      energy: 53.1502
+    - name: write
+      arguments:
+        address_delta: 7
+        data_delta: 0
+      energy: 4.66168
+    - name: write
+      arguments:
+        address_delta: 7
+        data_delta: 1
+      energy: 53.80842
+    - name: write
+      arguments:
+        address_delta: 8
+        data_delta: 0
+      energy: 5.31989
+    - name: write
+      arguments:
+        address_delta: 8
+        data_delta: 1
+      energy: 54.46663
+    - name: write
+      arguments:
+        address_delta: 9
+        data_delta: 0
+      energy: 5.97811
+    - name: write
+      arguments:
+        address_delta: 9
+        data_delta: 1
+      energy: 55.12485
+    - name: write
+      arguments:
+        address_delta: 10
+        data_delta: 0
+      energy: 6.63632
+    - name: write
+      arguments:
+        address_delta: 10
+        data_delta: 1
+      energy: 55.78306
+    - name: write
+      arguments:
+        address_delta: 11
+        data_delta: 0
+      energy: 7.29454
+    - name: write
+      arguments:
+        address_delta: 11
+        data_delta: 1
+      energy: 56.44128
+    - name: write
+      arguments:
+        address_delta: 12
+        data_delta: 0
+      energy: 7.95275
+    - name: write
+      arguments:
+        address_delta: 12
+        data_delta: 1
+      energy: 57.09949
+    - name: write
+      arguments:
+        address_delta: 13
+        data_delta: 0
+      energy: 8.61097
+    - name: write
+      arguments:
+        address_delta: 13
+        data_delta: 1
+      energy: 57.75771
+    - name: write
+      arguments:
+        address_delta: 14
+        data_delta: 0
+      energy: 9.26919
+    - name: write
+      arguments:
+        address_delta: 14
+        data_delta: 1
+      energy: 58.41593
+    - name: write
+      arguments:
+        address_delta: 15
+        data_delta: 0
+      energy: 9.9274
+    - name: write
+      arguments:
+        address_delta: 15
+        data_delta: 1
+      energy: 59.07414
+    - name: write
+      arguments:
+        address_delta: 16
+        data_delta: 0
+      energy: 10.58562
+    - name: write
+      arguments:
+        address_delta: 16
+        data_delta: 1
+      energy: 59.73236
+    - name: write
+      arguments:
+        address_delta: 17
+        data_delta: 0
+      energy: 11.24383
+    - name: write
+      arguments:
+        address_delta: 17
+        data_delta: 1
+      energy: 60.39057
+    - name: write
+      arguments:
+        address_delta: 18
+        data_delta: 0
+      energy: 11.90205
+    - name: write
+      arguments:
+        address_delta: 18
+        data_delta: 1
+      energy: 61.04879
+    - name: write
+      arguments:
+        address_delta: 19
+        data_delta: 0
+      energy: 12.56026
+    - name: write
+      arguments:
+        address_delta: 19
+        data_delta: 1
+      energy: 61.707
+    - name: write
+      arguments:
+        address_delta: 20
+        data_delta: 0
+      energy: 13.21848
+    - name: write
+      arguments:
+        address_delta: 20
+        data_delta: 1
+      energy: 62.36522
+    - name: write
+      arguments:
+        address_delta: 21
+        data_delta: 0
+      energy: 13.87669
+    - name: write
+      arguments:
+        address_delta: 21
+        data_delta: 1
+      energy: 63.02343
+    - name: write
+      arguments:
+        address_delta: 22
+        data_delta: 0
+      energy: 14.53491
+    - name: write
+      arguments:
+        address_delta: 22
+        data_delta: 1
+      energy: 63.68165
+    - name: write
+      arguments:
+        address_delta: 23
+        data_delta: 0
+      energy: 15.19312
+    - name: write
+      arguments:
+        address_delta: 23
+        data_delta: 1
+      energy: 64.33986
+    - name: write
+      arguments:
+        address_delta: 24
+        data_delta: 0
+      energy: 15.85134
+    - name: write
+      arguments:
+        address_delta: 24
+        data_delta: 1
+      energy: 64.99808
+    - name: write
+      arguments:
+        address_delta: 25
+        data_delta: 0
+      energy: 16.50955
+    - name: write
+      arguments:
+        address_delta: 25
+        data_delta: 1
+      energy: 65.65629
+    - name: write
+      arguments:
+        address_delta: 26
+        data_delta: 0
+      energy: 17.16777
+    - name: write
+      arguments:
+        address_delta: 26
+        data_delta: 1
+      energy: 66.31451
+    - name: write
+      arguments:
+        address_delta: 27
+        data_delta: 0
+      energy: 17.82598
+    - name: write
+      arguments:
+        address_delta: 27
+        data_delta: 1
+      energy: 66.97272
+    - name: write
+      arguments:
+        address_delta: 28
+        data_delta: 0
+      energy: 18.4842
+    - name: write
+      arguments:
+        address_delta: 28
+        data_delta: 1
+      energy: 67.63094
+    - name: write
+      arguments:
+        address_delta: 29
+        data_delta: 0
+      energy: 19.14241
+    - name: write
+      arguments:
+        address_delta: 29
+        data_delta: 1
+      energy: 68.28915
+    - name: write
+      arguments:
+        address_delta: 30
+        data_delta: 0
+      energy: 19.80063
+    - name: write
+      arguments:
+        address_delta: 30
+        data_delta: 1
+      energy: 68.94737
+    - name: write
+      arguments:
+        address_delta: 31
+        data_delta: 0
+      energy: 20.45884
+    - name: write
+      arguments:
+        address_delta: 31
+        data_delta: 1
+      energy: 69.60558
+    - name: write
+      arguments:
+        address_delta: 32
+        data_delta: 0
+      energy: 21.11706
+    - name: write
+      arguments:
+        address_delta: 32
+        data_delta: 1
+      energy: 70.2638
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 0.05417
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 48.58001
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 0.70407
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 49.22991
+    - name: read
+      arguments:
+        address_delta: 2
+        data_delta: 0
+      energy: 1.35397
+    - name: read
+      arguments:
+        address_delta: 2
+        data_delta: 1
+      energy: 49.87981
+    - name: read
+      arguments:
+        address_delta: 3
+        data_delta: 0
+      energy: 2.00387
+    - name: read
+      arguments:
+        address_delta: 3
+        data_delta: 1
+      energy: 50.52971
+    - name: read
+      arguments:
+        address_delta: 4
+        data_delta: 0
+      energy: 2.65377
+    - name: read
+      arguments:
+        address_delta: 4
+        data_delta: 1
+      energy: 51.17961
+    - name: read
+      arguments:
+        address_delta: 5
+        data_delta: 0
+      energy: 3.30367
+    - name: read
+      arguments:
+        address_delta: 5
+        data_delta: 1
+      energy: 51.82951
+    - name: read
+      arguments:
+        address_delta: 6
+        data_delta: 0
+      energy: 3.95357
+    - name: read
+      arguments:
+        address_delta: 6
+        data_delta: 1
+      energy: 52.47941
+    - name: read
+      arguments:
+        address_delta: 7
+        data_delta: 0
+      energy: 4.60347
+    - name: read
+      arguments:
+        address_delta: 7
+        data_delta: 1
+      energy: 53.12931
+    - name: read
+      arguments:
+        address_delta: 8
+        data_delta: 0
+      energy: 5.25337
+    - name: read
+      arguments:
+        address_delta: 8
+        data_delta: 1
+      energy: 53.77921
+    - name: read
+      arguments:
+        address_delta: 9
+        data_delta: 0
+      energy: 5.90327
+    - name: read
+      arguments:
+        address_delta: 9
+        data_delta: 1
+      energy: 54.42911
+    - name: read
+      arguments:
+        address_delta: 10
+        data_delta: 0
+      energy: 6.55317
+    - name: read
+      arguments:
+        address_delta: 10
+        data_delta: 1
+      energy: 55.07901
+    - name: read
+      arguments:
+        address_delta: 11
+        data_delta: 0
+      energy: 7.20307
+    - name: read
+      arguments:
+        address_delta: 11
+        data_delta: 1
+      energy: 55.72891
+    - name: read
+      arguments:
+        address_delta: 12
+        data_delta: 0
+      energy: 7.85297
+    - name: read
+      arguments:
+        address_delta: 12
+        data_delta: 1
+      energy: 56.37881
+    - name: read
+      arguments:
+        address_delta: 13
+        data_delta: 0
+      energy: 8.50287
+    - name: read
+      arguments:
+        address_delta: 13
+        data_delta: 1
+      energy: 57.02871
+    - name: read
+      arguments:
+        address_delta: 14
+        data_delta: 0
+      energy: 9.15277
+    - name: read
+      arguments:
+        address_delta: 14
+        data_delta: 1
+      energy: 57.67861
+    - name: read
+      arguments:
+        address_delta: 15
+        data_delta: 0
+      energy: 9.80267
+    - name: read
+      arguments:
+        address_delta: 15
+        data_delta: 1
+      energy: 58.32851
+    - name: read
+      arguments:
+        address_delta: 16
+        data_delta: 0
+      energy: 10.45257
+    - name: read
+      arguments:
+        address_delta: 16
+        data_delta: 1
+      energy: 58.97841
+    - name: read
+      arguments:
+        address_delta: 17
+        data_delta: 0
+      energy: 11.10247
+    - name: read
+      arguments:
+        address_delta: 17
+        data_delta: 1
+      energy: 59.62831
+    - name: read
+      arguments:
+        address_delta: 18
+        data_delta: 0
+      energy: 11.75237
+    - name: read
+      arguments:
+        address_delta: 18
+        data_delta: 1
+      energy: 60.27821
+    - name: read
+      arguments:
+        address_delta: 19
+        data_delta: 0
+      energy: 12.40226
+    - name: read
+      arguments:
+        address_delta: 19
+        data_delta: 1
+      energy: 60.9281
+    - name: read
+      arguments:
+        address_delta: 20
+        data_delta: 0
+      energy: 13.05216
+    - name: read
+      arguments:
+        address_delta: 20
+        data_delta: 1
+      energy: 61.578
+    - name: read
+      arguments:
+        address_delta: 21
+        data_delta: 0
+      energy: 13.70206
+    - name: read
+      arguments:
+        address_delta: 21
+        data_delta: 1
+      energy: 62.2279
+    - name: read
+      arguments:
+        address_delta: 22
+        data_delta: 0
+      energy: 14.35196
+    - name: read
+      arguments:
+        address_delta: 22
+        data_delta: 1
+      energy: 62.8778
+    - name: read
+      arguments:
+        address_delta: 23
+        data_delta: 0
+      energy: 15.00186
+    - name: read
+      arguments:
+        address_delta: 23
+        data_delta: 1
+      energy: 63.5277
+    - name: read
+      arguments:
+        address_delta: 24
+        data_delta: 0
+      energy: 15.65176
+    - name: read
+      arguments:
+        address_delta: 24
+        data_delta: 1
+      energy: 64.1776
+    - name: read
+      arguments:
+        address_delta: 25
+        data_delta: 0
+      energy: 16.30166
+    - name: read
+      arguments:
+        address_delta: 25
+        data_delta: 1
+      energy: 64.8275
+    - name: read
+      arguments:
+        address_delta: 26
+        data_delta: 0
+      energy: 16.95156
+    - name: read
+      arguments:
+        address_delta: 26
+        data_delta: 1
+      energy: 65.4774
+    - name: read
+      arguments:
+        address_delta: 27
+        data_delta: 0
+      energy: 17.60146
+    - name: read
+      arguments:
+        address_delta: 27
+        data_delta: 1
+      energy: 66.1273
+    - name: read
+      arguments:
+        address_delta: 28
+        data_delta: 0
+      energy: 18.25136
+    - name: read
+      arguments:
+        address_delta: 28
+        data_delta: 1
+      energy: 66.7772
+    - name: read
+      arguments:
+        address_delta: 29
+        data_delta: 0
+      energy: 18.90126
+    - name: read
+      arguments:
+        address_delta: 29
+        data_delta: 1
+      energy: 67.4271
+    - name: read
+      arguments:
+        address_delta: 30
+        data_delta: 0
+      energy: 19.55116
+    - name: read
+      arguments:
+        address_delta: 30
+        data_delta: 1
+      energy: 68.077
+    - name: read
+      arguments:
+        address_delta: 31
+        data_delta: 0
+      energy: 20.20106
+    - name: read
+      arguments:
+        address_delta: 31
+        data_delta: 1
+      energy: 68.7269
+    - name: read
+      arguments:
+        address_delta: 32
+        data_delta: 0
+      energy: 20.85096
+    - name: read
+      arguments:
+        address_delta: 32
+        data_delta: 1
+      energy: 69.3768
+    - name: idle
+      arguments: null
+      energy: 0.01727

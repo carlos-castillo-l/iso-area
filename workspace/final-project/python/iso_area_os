@@ -1,0 +1,1 @@
+python iso_final.py ../example_designs/simple_output_stationary/arch -o output/ --iso_area 1 --min_PE 96 --max_PE 336 --target_area 2118163.23 --buffer system.simple_ws.shared_glb
