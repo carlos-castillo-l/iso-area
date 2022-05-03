@@ -46,7 +46,7 @@ from iso_area import yaml_generator
 LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1.yaml', 'AlexNet_layer2.yaml', 'AlexNet_layer3.yaml', 'AlexNet_layer4.yaml', 'AlexNet_layer5.yaml'],
                 'VGG01': ['VGG01_layer1.yaml', 'VGG01_layer2.yaml', 'VGG01_layer3.yaml', 'VGG01_layer4.yaml', 'VGG01_layer5.yaml',
                             'VGG01_layer6.yaml', 'VGG01_layer7.yaml', 'VGG01_layer8.yaml']}
-TIMELOOP_TIMEOUT = 75 # in seconds
+TIMELOOP_TIMEOUT = 60*4 # in seconds
 
 def parse_inputs(args, system_state):
     accelergy_version = 0.3
