@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 # EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' ,'AlexNet_layer5'], 
 #                         'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
-EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer5'], 'VGG01': ['VGG01_layer4']}
+EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer5'], 'VGG01': ['VGG01_layer8']}
 
 # LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1', 'AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' 
 #                 ,'AlexNet_layer5'], 'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
@@ -204,4 +204,4 @@ def graph_data(output):
 
 
 
-graph_data('eyeriss')
+graph_data('weight')
