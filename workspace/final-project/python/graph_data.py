@@ -159,42 +159,44 @@ def graph_data(output):
 
         workload_num += 1
     
-    # BAR GRAPHS
-    # graph_title = 'Number of PEs vs Normalized Energy - AlexNet'
-    # plt.figure(figsize=(10,8))
-    # plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
-    # plt.title(graph_title)
-    # plt.xlabel('Number of PEs', fontweight='bold')
-    # plt.ylabel('Energy consumption (uJ)', fontweight='bold')
-    # plt.savefig(graph_title + '.png', bbox_inches='tight')
-    # # plt.show()
+    # redo ENERGY EYERISS AND OUTPUT
 
-    # graph_title = 'Number of PEs vs Normalized Energy - VGG01'
+    # BAR GRAPHS
+    graph_title = 'Number of PEs vs Normalized Energy - AlexNet'
+    plt.figure(figsize=(10,8))
+    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    plt.title(graph_title)
+    plt.xlabel('Number of PEs', fontweight='bold')
+    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    plt.savefig(graph_title + '.png', bbox_inches='tight')
+    # plt.show()
+
+    graph_title = 'Number of PEs vs Normalized Energy - VGG01'
+    plt.figure(figsize=(10,8))
+    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    plt.title(graph_title)
+    plt.xlabel('Number of PEs', fontweight='bold')
+    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    plt.savefig(graph_title + '.png')
+    # plt.show()
+
+    # graph_title = 'Number of PEs vs Normalized Utilization - AlexNet'
     # plt.figure(figsize=(10,8))
-    # plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    # plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     # plt.title(graph_title)
     # plt.xlabel('Number of PEs', fontweight='bold')
-    # plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    # plt.ylabel('Utilization', fontweight='bold')
     # plt.savefig(graph_title + '.png')
     # # plt.show()
 
-    graph_title = 'Number of PEs vs Normalized Utilization - AlexNet'
-    plt.figure(figsize=(10,8))
-    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
-    plt.title(graph_title)
-    plt.xlabel('Latency (num cycles)', fontweight='bold')
-    plt.ylabel('Utilization', fontweight='bold')
-    plt.savefig(graph_title + '.png')
-    # plt.show()
-
-    graph_title = 'Number of PEs vs Normalized Utilization - VGG01'
-    plt.figure(figsize=(10,8))
-    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
-    plt.title(graph_title)
-    plt.xlabel('Latency (num cycles)', fontweight='bold')
-    plt.ylabel('Utilization', fontweight='bold')
-    plt.savefig(graph_title + '.png')
-    # plt.show()
+    # graph_title = 'Number of PEs vs Normalized Utilization - VGG01'
+    # plt.figure(figsize=(10,8))
+    # plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    # plt.title(graph_title)
+    # plt.xlabel('Number of PEs', fontweight='bold')
+    # plt.ylabel('Utilization', fontweight='bold')
+    # plt.savefig(graph_title + '.png')
+    # # plt.show()
 
     
 
@@ -204,4 +206,4 @@ def graph_data(output):
 
 
 
-graph_data('weight')
+graph_data('output')
