@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 
-EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' ,'AlexNet_layer5'], 
-                        'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
+# EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' ,'AlexNet_layer5'], 
+#                         'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
+EYERISS_LAYER_SHAPES = {'AlexNet': ['AlexNet_layer5'], 'VGG01': ['VGG01_layer4']}
 
-LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1', 'AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' 
-                ,'AlexNet_layer5'], 'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
+# LAYER_SHAPES = {'AlexNet': ['AlexNet_layer1', 'AlexNet_layer2', 'AlexNet_layer3', 'AlexNet_layer4' 
+#                 ,'AlexNet_layer5'], 'VGG01': ['VGG01_layer1', 'VGG01_layer2', 'VGG01_layer3', 'VGG01_layer4', 'VGG01_layer5', 'VGG01_layer6', 'VGG01_layer7', 'VGG01_layer8']}
+LAYER_SHAPES = {'AlexNet': ['AlexNet_layer5'], 'VGG01': ['VGG01_layer8']}
 
 STATIONARY_PE_SHAPES = ['_96_PEs', '_112_PEs', '_128_PEs',
                 '_144_PEs', '_160_PEs', '_176_PEs', '_192_PEs',
@@ -26,8 +28,10 @@ VGG_LAYERS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 eyeriss_alexnet_cycles_data = []
 eyeriss_alexnet_energy_data = []
+eyeriss_alexnet_util_data = []
 eyersiss_vgg_cycles_data = []
 eyeriss_vgg_energy_data = []
+eyeriss_vgg_util_data = []
 important_data_reached = False
 for workload, layers in EYERISS_LAYER_SHAPES.items():
     for layer in layers:
@@ -49,16 +53,24 @@ for workload, layers in EYERISS_LAYER_SHAPES.items():
                         value = float(data[1])
                         if workload == 'AlexNet': eyeriss_alexnet_energy_data.append(value)
                         else: eyeriss_vgg_energy_data.append(value)
+                    if section == 'Utilization:':
+                        value = float(data[1])
+                        if workload == 'AlexNet': eyeriss_alexnet_util_data.append(value)
+                        else: eyeriss_vgg_util_data.append(value)
 alexnet_cycles_avg = sum(eyeriss_alexnet_cycles_data)/len(eyeriss_alexnet_cycles_data)
 alexnet_energy_avg = sum(eyeriss_alexnet_energy_data)/len(eyeriss_alexnet_energy_data)
+alexnet_util_avg = sum(eyeriss_alexnet_util_data)/len(eyeriss_alexnet_util_data)
 vgg_cycles_avg = sum(eyersiss_vgg_cycles_data)/len(eyersiss_vgg_cycles_data)
 vgg_energy_avg = sum(eyeriss_vgg_energy_data)/len(eyeriss_vgg_energy_data)
+vgg_util_avg = sum(eyeriss_vgg_util_data)/len(eyeriss_vgg_util_data)
 
 def graph_data(output):
     alexnet_normalized_energy = []
     alexnet_normalized_cycles = []
+    alexnet_normalized_util = []
     vgg_normalized_cycles = []
     vgg_normalized_energy = []
+    vgg_normalized_util = []
 
     output_to_name = {'weight': 'simple_weight_stationary', 'output': 'simple_output_stationary', 'eyeriss': 'eyeriss_like'}
     output_to_pes = {'weight': STATIONARY_NUM_PES, 'output': STATIONARY_NUM_PES, 'eyeriss': EYERISS_NUM_PES}
@@ -70,13 +82,14 @@ def graph_data(output):
     PE_SHAPES = output_to_pe_shapes[output]
     CURR_LAYER_SHAPES = output_to_layer_shapes[output]
 
-    
     workload_num = 0
     for pe_shape in PE_SHAPES:
         alexnet_cycles_data = []
         alexnet_energy_data = []
+        alexnet_util_data = []
         vgg_cycles_data = []
         vgg_energy_data = []
+        vgg_util_data = []
         for workload, layers in CURR_LAYER_SHAPES.items():
             for layer in layers:
                 filename = './output/{}/{}/{}/{}/timeloop-mapper.stats.txt'.format(current_output, current_output+pe_shape, workload, layer)
@@ -98,12 +111,18 @@ def graph_data(output):
                                 value = float(data[1])
                                 if workload == 'AlexNet': alexnet_energy_data.append(value)
                                 else: vgg_energy_data.append(value)
+                            if section == 'Utilization:':
+                                value = float(data[1])
+                                if workload == 'AlexNet': alexnet_util_data.append(value)
+                                else: vgg_util_data.append(value)
             curr_num_pes = NUM_PES[workload_num]
 
         alexnet_normalized_cycles.append(sum(alexnet_cycles_data)/alexnet_cycles_avg)
         alexnet_normalized_energy.append(sum(alexnet_energy_data)/alexnet_energy_avg)
+        alexnet_normalized_util.append(sum(alexnet_util_data)/alexnet_util_avg)
         vgg_normalized_cycles.append(sum(vgg_cycles_data)/vgg_cycles_avg)
         vgg_normalized_energy.append(sum(vgg_energy_data)/vgg_cycles_avg)
+        vgg_normalized_util.append(sum(vgg_util_data)/vgg_util_avg)
 
         # FOR REGULAR GRAPHS
 
@@ -141,37 +160,41 @@ def graph_data(output):
         workload_num += 1
     
     # BAR GRAPHS
-    graph_title = 'Number of PEs vs Normalized Energy - AlexNet'
-    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
-    plt.title(graph_title)
-    plt.xlabel('Number of PEs', fontweight='bold')
-    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
-    plt.savefig(graph_title + '.png')
-    plt.show()
+    # graph_title = 'Number of PEs vs Normalized Energy - AlexNet'
+    # plt.figure(figsize=(10,8))
+    # plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    # plt.title(graph_title)
+    # plt.xlabel('Number of PEs', fontweight='bold')
+    # plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    # plt.savefig(graph_title + '.png', bbox_inches='tight')
+    # # plt.show()
 
-    graph_title = 'Number of PEs vs Normalized Energy - VGG01'
-    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
-    plt.title(graph_title)
-    plt.xlabel('Number of PEs', fontweight='bold')
-    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
-    plt.savefig(graph_title + '.png')
-    plt.show()
+    # graph_title = 'Number of PEs vs Normalized Energy - VGG01'
+    # plt.figure(figsize=(10,8))
+    # plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_energy, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    # plt.title(graph_title)
+    # plt.xlabel('Number of PEs', fontweight='bold')
+    # plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    # plt.savefig(graph_title + '.png')
+    # # plt.show()
 
-    graph_title = 'Number of PEs vs Normalized Latency - AlexNet'
-    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_cycles, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    graph_title = 'Number of PEs vs Normalized Utilization - AlexNet'
+    plt.figure(figsize=(10,8))
+    plt.bar([5*i for i in range(len(NUM_PES))],  alexnet_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Latency (num cycles)', fontweight='bold')
-    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    plt.ylabel('Utilization', fontweight='bold')
     plt.savefig(graph_title + '.png')
-    plt.show()
+    # plt.show()
 
-    graph_title = 'Number of PEs vs Normalized Latency - VGG01'
-    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_cycles, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
+    graph_title = 'Number of PEs vs Normalized Utilization - VGG01'
+    plt.figure(figsize=(10,8))
+    plt.bar([5*i for i in range(len(NUM_PES))],  vgg_normalized_util, width=0.8*5, tick_label=[str(j) for j in NUM_PES])
     plt.title(graph_title)
     plt.xlabel('Latency (num cycles)', fontweight='bold')
-    plt.ylabel('Energy consumption (uJ)', fontweight='bold')
+    plt.ylabel('Utilization', fontweight='bold')
     plt.savefig(graph_title + '.png')
-    plt.show()
+    # plt.show()
 
     
 
